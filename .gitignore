@@ -1,8 +1,0 @@
-# 工作区与备份，不进仓库
-.workbuddy/
-.backup/
-
-# 系统垃圾
-.DS_Store
-Thumbs.db
-desktop.ini
