@@ -1121,11 +1121,9 @@
   function renderProfile() {
     const total = DATA.tasks.length;
     const done = state.done.length;
-    const ratio = total ? done / total : 0;
-    const level = Math.max(1, Math.min(99, 1 + Math.floor(ratio * 20)));
     const label = state.name || (state.user ? state.user.name : "");
     el.profileName.textContent = label || "个人档案";
-    el.profileLevel.textContent = `等级 ${level} · 已完成 ${done}/${total}`;
+    el.profileLevel.textContent = `已完成 ${done}/${total}`;
     if (label) el.profileAvatar.textContent = label.slice(0, 1).toUpperCase();
     else el.profileAvatar.innerHTML = icon("user");
   }
