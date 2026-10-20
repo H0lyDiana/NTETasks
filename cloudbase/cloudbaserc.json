@@ -1,0 +1,14 @@
+{
+  "envId": "<ENV_ID>",
+  "functionRoot": "./functions",
+  "functions": [
+    {
+      "name": "nte-api",
+      "handler": "index.main",
+      "runtime": "Nodejs18.15",
+      "timeout": 10,
+      "memorySize": 256,
+      "installDependency": true
+    }
+  ]
+}

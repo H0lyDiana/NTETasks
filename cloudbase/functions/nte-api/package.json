@@ -1,0 +1,10 @@
+{
+  "name": "nte-api",
+  "version": "1.0.0",
+  "description": "异环 · 都市手账 账号与存档接口",
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "@cloudbase/node-sdk": "^3.18.7"
+  }
+}
