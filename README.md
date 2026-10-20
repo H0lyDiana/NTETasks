@@ -2,7 +2,7 @@
 
 《异环》日常任务清单，纯静态网页，**无需安装、无需联网**，双击 `index.html` 就能用。
 
-> 线上版：<https://nte-tasks-d7gktmyeef8c461ed-1318657528.tcloudbaseapp.com/>
+> 纯前端站点，可直接部署到任意静态托管（GitHub Pages、CloudBase 静态托管等）。
 
 ## 功能
 
