@@ -2,7 +2,9 @@
 
 《异环》日常任务清单，纯静态网页，**无需安装、无需联网**，双击 `index.html` 就能用。
 
-> 纯前端站点，可直接部署到任意静态托管（GitHub Pages、CloudBase 静态托管等）。
+> 线上版：<https://h0lydiana.github.io/NTETasks/>
+>
+> 纯前端站点，也可自行部署到任意静态托管。
 
 ## 功能
 
