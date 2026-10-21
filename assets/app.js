@@ -1028,6 +1028,11 @@
       const clear = new Set();
       ids.forEach((id) => {
         if (!state.done.includes(id)) return;
+        // 配了 clock / earn 的任务走自己的计时：勾选后 N 小时、或收益攒够才重置，
+        // 不能被每日 / 每周的重置点提前清掉（没有计时起点时才退回分类周期）
+        const task = DATA.tasks.find((x) => x.id === id);
+        const m = task ? mechOf(task) : null;
+        if (m && (m.clock || m.earn) && state.started[id] != null) return;
         groupOf(id).forEach((x) => clear.add(x));
       });
       if (clear.size) {
