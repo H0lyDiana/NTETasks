@@ -37,6 +37,9 @@
     cafeView: $("#cafe-view"),
     cafeFrame: $("#cafe-frame"),
     cafeIframe: $("#cafe-iframe"),
+    bondView: $("#bond-view"),
+    bondFrame: $("#bond-frame"),
+    bondIframe: $("#bond-iframe"),
     workbench: $(".workbench"),
     resetGrid: $("#reset-grid"),
     list: $("#task-list"),
@@ -613,9 +616,10 @@
     }).join("");
   }
 
-  // 「工具」分组：版本日历 + 一咖舍（经营计算器）
+  // 「工具」分组：版本日历 + 羁遇赠礼 + 一咖舍（经营计算器）
   const TOOLS = [
     { key: "calendar", icon: "calendar", label: "版本日历" },
+    { key: "bond", icon: "gift", label: "羁遇赠礼" },
     { key: "cafe", icon: "cafe", label: "一咖舍" }
   ];
 
@@ -660,21 +664,25 @@
     });
   }
 
-  // 第一次进「一咖舍」才挂 iframe 地址，避免一打开手账就拉外部页面
-  function mountCafe() {
-    const frame = el.cafeIframe;
+  // 内嵌页第一次进入时才挂 iframe 地址，避免一打开手账就把外部页面和整页图片一起拉下来
+  const EMBEDS = { bond: () => el.bondIframe, cafe: () => el.cafeIframe };
+
+  function mountEmbed(view) {
+    const pick = EMBEDS[view];
+    const frame = pick ? pick() : null;
     if (!frame || !frame.dataset.src) return;
     frame.src = frame.dataset.src;
     frame.removeAttribute("data-src");
   }
 
-  // 切换主区内容：任务列表 / 版本日历 / 一咖舍
+  // 切换主区内容：任务列表 / 版本日历 / 羁遇赠礼 / 一咖舍
   function applyView(view) {
     const tasks = view === "tasks";
     state.view = tasks ? "tasks" : view;
     el.resetGrid.hidden = !tasks;
     el.workbench.hidden = !tasks;
     el.calendarView.hidden = view !== "calendar";
+    if (el.bondView) el.bondView.hidden = view !== "bond";
     if (el.cafeView) el.cafeView.hidden = view !== "cafe";
     renderNav();
     renderTools();
@@ -686,9 +694,10 @@
     if (view === "calendar") {
       renderCalendar();
       el.calendarView.scrollIntoView({ block: "start", behavior: "smooth" });
-    } else if (view === "cafe") {
-      mountCafe();
-      if (el.cafeView) el.cafeView.scrollIntoView({ block: "start", behavior: "smooth" });
+    } else if (view === "bond" || view === "cafe") {
+      mountEmbed(view);
+      const box = view === "bond" ? el.bondView : el.cafeView;
+      if (box) box.scrollIntoView({ block: "start", behavior: "smooth" });
     } else {
       renderList();
       renderDetail();

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-Hans">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>异环 · 祷歌为谁而诵 V1.4 赠礼速查 · NTEBond</title>
+<meta name="description" content="《异环》V1.4「祷歌为谁而诵」全 22 位角色赠礼速查：速升、省钱、均衡三条路线，含赠礼名称与获取地点，可按当前等级与好感度计算所需礼物数量与方斯。">
+<link rel="stylesheet" href="assets/css/style.css">
+<script>
+  try { if (localStorage.getItem("nte-theme") === "light") document.documentElement.dataset.theme = "light"; } catch (e) {}
+</script>
+</head>
+<body>
+
+<!-- 顶部跑马灯 -->
+<div class="ribbon" aria-hidden="true">
+  <div class="ribbon-track">
+    <span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i>
+  </div>
+</div>
+
+<header class="top">
+  <p class="kicker">异环 · 祷歌为谁而诵 · V1.4</p>
+  <button class="theme-btn" id="themeBtn" type="button" aria-label="切换主题">
+    <svg class="ic ic-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/></svg>
+    <svg class="ic ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.4 14.6A8.6 8.6 0 0 1 9.4 3.6a8.6 8.6 0 1 0 11 11z"/></svg>
+    <span id="themeLabel">白昼</span>
+  </button>
+</header>
+
+<main>
+
+  <!-- 等级经验表（默认折叠） -->
+  <details class="block exp-block" id="exp">
+    <summary class="block-title">
+      好感等级经验表
+      <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </summary>
+    <div class="exp-head">
+      <div class="switch" role="group" aria-label="经验显示模式">
+        <button class="switch-btn is-active" data-mode="per">单级需求</button>
+        <button class="switch-btn" data-mode="cum">累计需求</button>
+      </div>
+      <p class="exp-hint" id="expHint">升到下一级需要的好感度</p>
+    </div>
+    <ol class="exp-track" id="expTrack"></ol>
+  </details>
+
+  <!-- 角色卡 -->
+  <section class="block" id="chars">
+    <h2 class="block-title">角色赠礼一览</h2>
+
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="search" type="search" placeholder="搜角色或赠礼名称，如「残虹」「跳跳兔盒」" autocomplete="off">
+      <button id="clearSearch" class="clear" aria-label="清空搜索" hidden>×</button>
+    </div>
+
+    <p class="result-line" id="resultLine"></p>
+    <div class="grid" id="grid"></div>
+    <p class="empty" id="empty" hidden>没有匹配的角色或赠礼，换个关键词试试。</p>
+  </section>
+
+</main>
+
+<div class="ribbon ribbon-b" aria-hidden="true">
+  <div class="ribbon-track">
+    <span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i><span>NEVERNESS&nbsp;TO&nbsp;EVERNESS</span><i>♥</i>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>

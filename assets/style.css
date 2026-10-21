@@ -450,7 +450,7 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(3.8px); }
 
 /* ---------------- 版本日历（工具页） ---------------- */
 /* 这两个自带 display 值，会盖掉浏览器默认的 [hidden]，所以单独声明一次 */
-.reset-grid[hidden], .workbench[hidden], .calendar-view[hidden], .cafe-view[hidden] { display: none !important; }
+.reset-grid[hidden], .workbench[hidden], .calendar-view[hidden], .embed-view[hidden] { display: none !important; }
 
 .calendar-view { margin-top: 13.8px; }
 .cal-list { display: flex; flex-direction: column; gap: 9.4px; padding: 0 17.5px 16.2px; }
@@ -480,24 +480,28 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(3.8px); }
 }
 .cal-shot img { display: block; width: 100%; height: auto; }
 
-/* ---------------- 一咖舍（工具页，内嵌外部计算器） ---------------- */
-.cafe-view { margin-top: 13.8px; }
-.cafe-ext {
+/* ---------------- 内嵌页（工具页：一咖舍 / 羁遇赠礼） ---------------- */
+.embed-view { margin-top: 13.8px; }
+.embed-ext {
   display: inline-flex; align-items: center; gap: 5px; flex: none;
   padding: 6.2px 11.2px; border: 1px solid var(--line); border-radius: 999px;
   font-size: 13.4px; color: var(--dim);
   transition: color .14s, border-color .14s, background .14s;
 }
-.cafe-ext .ic { font-size: 13.4px; }
-.cafe-ext:hover { color: var(--accent-ink); border-color: var(--line-strong); background: var(--hover-weak); }
-/* 外部页面自己排版、自己滚动；底色跟对方主题一致，加载时不闪白 */
-.cafe-frame {
+.embed-ext .ic { font-size: 13.4px; }
+.embed-ext:hover { color: var(--accent-ink); border-color: var(--line-strong); background: var(--hover-weak); }
+/* 内嵌页面自己排版、自己滚动；底色跟对方主题一致，加载时不闪白 */
+.embed-frame {
   height: clamp(660px, 80vh, 920px);
   margin: 0 17.5px 16.2px;
   border: 1px solid var(--line); border-radius: var(--r-md);
-  overflow: hidden; background: #14100e;
+  overflow: hidden; background: var(--surface-3);
 }
-.cafe-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+.embed-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+#cafe-view .embed-frame { background: #14100e; }
+#bond-view .embed-frame { background: #0f0a14; }
+/* 赠礼速查是竖长的角色网格，给高一点 */
+#bond-view .embed-frame { height: clamp(720px, 84vh, 1000px); }
 
 /* ---------------- 响应式（从宽到窄） ---------------- */
 /* 主区被侧栏挤窄后，四列倒计时会折行，提前降到两列 */
@@ -536,5 +540,6 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(3.8px); }
   .cal-list { padding: 0 11.2px 13.8px; }
   .cal-head { padding: 12.5px 13.8px; font-size: 17.5px; }
   .cal-shot { margin: 0 9.4px 9.4px; }
-  .cafe-frame { height: clamp(560px, 76vh, 780px); margin: 0 11.2px 13.8px; }
+  .embed-frame { height: clamp(560px, 76vh, 780px); margin: 0 11.2px 13.8px; }
+  #bond-view .embed-frame { height: clamp(600px, 78vh, 820px); }
 }
