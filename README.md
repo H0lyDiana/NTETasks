@@ -33,18 +33,22 @@
 ```
 index.html            页面骨架
 assets/
-  style.css           样式与主题
-  data.js             全部任务数据（window.NTE_DATA）
-  app.js              渲染、计时、存档逻辑
+  css/style.css       样式与主题
+  js/data.js          全部任务数据（window.NTE_DATA）
+  js/app.js           渲染、计时、存档逻辑
+  img/1.1 ~ 1.4.webp  版本日历长图（webp，质量 88）
 cloud/
   cloud-config.js     云存档配置（默认留空 = 纯本机模式）
   cloud.js            云存档客户端
-images/
-  1.1.jpg ~ 1.4.jpg   版本日历长图
 bond/
   index.html          羁遇赠礼速查页（以 iframe 相对嵌入）
   assets/             该页自己的 css / js / 图片
+cafe/
+  index.html          一咖舍经营计算器（以 iframe 相对嵌入）
+  assets/             该页自己的 css / js / 图片
 ```
+
+两个工具页都是完整的独立页面，全部资源走相对路径，整目录放在站点里就能直接以 iframe 嵌入，不依赖外部地址。
 
 ## 本地使用
 
@@ -52,7 +56,9 @@ bond/
 
 ## 修改任务
 
-任务都在 `assets/data.js` 的 `window.NTE_DATA` 里：`categories` 定义分类，`tasks` 是任务数组，改完刷新页面即可。
+任务都在 `assets/js/data.js` 的 `window.NTE_DATA` 里：`categories` 定义分类，`tasks` 是任务数组，改完刷新页面即可。
+
+改了 `js` / `css` 之后记得同步改 `index.html` 里的 `?v=` 缓存串，否则老访客会继续用浏览器缓存的旧文件。
 
 ## 云存档
 

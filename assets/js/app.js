@@ -630,12 +630,12 @@
   }
 
   /* ---------------- 渲染：版本日历 ---------------- */
-  // 图片统一放在 images/，文件名即版本号；ratio = 高 / 宽，用来撑住占位高度
+  // 图片统一放在 assets/img/，文件名即版本号，统一用 webp（质量 88，原 jpg 约 1/4.5 体积）；ratio = 高 / 宽，用来撑住占位高度
   const CAL_VERSIONS = [
-    { v: "[1.1]游梦洄廊", src: "images/1.1.jpg", ratio: 1.2 },
-    { v: "[1.2]九百九十九夜", src: "images/1.2.jpg", ratio: 1.4974 },
-    { v: "[1.3]雾中朔望星回", src: "images/1.3.jpg", ratio: 1.8484 },
-    { v: "[1.4]祷歌为谁而诵", src: "images/1.4.jpg", ratio: 1.7328 }
+    { v: "[1.1]游梦洄廊", src: "assets/img/1.1.webp", ratio: 1.2 },
+    { v: "[1.2]九百九十九夜", src: "assets/img/1.2.webp", ratio: 1.4974 },
+    { v: "[1.3]雾中朔望星回", src: "assets/img/1.3.webp", ratio: 1.8484 },
+    { v: "[1.4]祷歌为谁而诵", src: "assets/img/1.4.webp", ratio: 1.7328 }
   ];
 
   // 只在第一次进工具页时铺一次 DOM，之后展开状态由浏览器自己保留
@@ -1017,10 +1017,14 @@
   /* ---------------- 到点自动重置：跨过重置点就清掉已完成 ---------------- */
   // 每个分类记一个「上次结算的重置点」，特殊任务按任务 id 各记一个。
   // 首次没有记录时只记基线、不清空（旧存档判断不出是哪天勾的），之后每次跨点自动清。
-  // 清掉的是该分类里没标 minor 的任务：完成状态与计时起点一起清，计数与每小时收益保留。
+  // 清掉的是该分类里「重置点之前勾上」的任务：完成状态与计时起点一起清，计数与每小时收益保留。
   function settleResets(now) {
     let touched = false;
     const labels = [];
+
+    // 只有「本轮重置点之前」勾上的才算上一周期的遗留；重置点之后才勾的一律保留。
+    // 没有勾选时间戳（旧存档）按 0 处理，照旧清掉。
+    const stale = (id, boundary) => state.done.includes(id) && (state.doneAt[id] || 0) < boundary;
 
     const settle = (key, boundary, ids, label) => {
       const prev = state.lastReset[key];
@@ -1033,16 +1037,17 @@
       state.lastReset[key] = boundary;
       touched = true;
       const before = state.done.length;
-      // 关联组：主任务被清时带上从属任务；从属任务自己不参与分类结算
+      // 关联组：主任务被清时向下带上从属；从属到点只清自己，不反向带主任务
       const clear = new Set();
       ids.forEach((id) => {
-        if (!state.done.includes(id)) return;
+        if (!stale(id, boundary)) return;
         // 配了 clock / earn 的任务走自己的计时：勾选后 N 小时、或收益攒够才重置，
         // 不能被每日 / 每周的重置点提前清掉（没有计时起点时才退回分类周期）
         const task = DATA.tasks.find((x) => x.id === id);
         const m = task ? mechOf(task) : null;
         if (m && (m.clock || m.earn) && state.started[id] != null) return;
-        groupOf(id).forEach((x) => clear.add(x));
+        const scope = LINK_OWNER.has(id) ? [id] : groupOf(id);
+        scope.forEach((x) => { if (stale(x, boundary)) clear.add(x); });
       });
       if (clear.size) {
         const stamp = Date.now();
@@ -1060,8 +1065,7 @@
       if (!c.reset) return; // 「所有」是汇总视图，自己没有周期
       if (c.reset === "custom") {
         DATA.tasks.forEach((t) => {
-          // 从属任务不走自己的特殊周期，等主任务重置时一起清
-          if (t.cat !== c.key || t.minor || LINK_OWNER.has(t.id)) return;
+          if (t.cat !== c.key) return;
           const b = lastCycleReset(t, now);
           if (b != null) settle("s" + t.id, b, [t.id], c.label);
         });
@@ -1069,8 +1073,10 @@
       }
       const b = lastResetBoundary(c.reset, now);
       if (b == null) return;
+      // 次要任务和从属任务一样按各自分类的周期清：
+      // 次要只影响排序与分母，从属的重置时刻跟主任务无关（跨分类的尤其不能拖到主任务周期上）
       const ids = DATA.tasks
-        .filter((t) => t.cat === c.key && !t.minor && !LINK_OWNER.has(t.id))
+        .filter((t) => t.cat === c.key)
         .map((t) => t.id);
       settle(c.key, b, ids, c.label);
     });

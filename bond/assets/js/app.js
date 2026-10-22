@@ -203,7 +203,7 @@
       <button class="card-toggle" type="button" aria-expanded="${open}"
         aria-label="${esc(c.name)}：${open ? "收起" : "展开"}赠礼路线">
         <span class="char-name">${highlight(c.name, currentQuery)}</span>
-        <img class="char-img" src="assets/img/chars/${encodeURIComponent(c.name)}.webp" alt="" loading="lazy" width="${c.portraitW}" height="${c.portraitH}">
+        <img class="char-img" src="assets/img/chars/${encodeURIComponent(c.name)}.webp" alt="" loading="lazy">
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
     </article>`;
@@ -230,7 +230,7 @@
     return `<section class="detail" data-char="${esc(c.name)}" aria-label="${esc(c.name)} 的赠礼路线">
       <div class="card-side">
         <h3 class="char-name">${highlight(c.name, currentQuery)}</h3>
-        <img class="char-img" src="assets/img/chars/${encodeURIComponent(c.name)}.webp" alt="${esc(c.name)}" loading="lazy" width="${c.portraitW}" height="${c.portraitH}">
+        <img class="char-img" src="assets/img/chars/${encodeURIComponent(c.name)}.webp" alt="${esc(c.name)}" loading="lazy">
         <button class="detail-close" type="button">收起</button>
       </div>
       <div class="card-body">
@@ -265,9 +265,17 @@
       next = next.nextElementSibling;
     }
     last.insertAdjacentHTML("afterend", detailHTML(c));
+    const panel = last.nextElementSibling;
 
-    const box = last.nextElementSibling.querySelector(".calc");
+    const box = panel.querySelector(".calc");
     if (box) paintCalc(box, c);
+
+    // 手机上点了靠下的角色，面板会落在视口外，补一次滚动
+    const r = panel.getBoundingClientRect();
+    if (r.top < 0 || r.top > window.innerHeight - 140) {
+      const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+      panel.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+    }
   }
 
   function setOpen(name) {
@@ -284,6 +292,11 @@
 
   /* ---------------- 过滤 ---------------- */
   let currentQuery = "";
+
+  // 窄屏放不下长示例，换成短提示，免得被截断
+  if (window.matchMedia("(max-width:620px)").matches) {
+    searchEl.placeholder = "搜角色或赠礼名称";
+  }
 
   function match(c, q) {
     if (!q) return true;

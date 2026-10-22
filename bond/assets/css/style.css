@@ -32,7 +32,7 @@
   --r-lg:12px;
   --maxw:1180px;
   --stat-w:84px;      /* 好感/方斯价格框统一宽度 */
-  --stat-w-m:74px;    /* 移动端横排时单个数值的宽度 */
+  --stat-w-m:64px;    /* 移动端横排时单个数值的宽度 */
   --cr-w:38px;        /* 计算框 速升/省钱/均衡 标签统一宽度 */
 
   --font:"Microsoft YaHei","微软雅黑",sans-serif;
@@ -76,12 +76,18 @@ body{
   color:var(--text);
   background:var(--bg);
   -webkit-font-smoothing:antialiased;
+  /* 关掉 iOS 横屏自动放大字号 */
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
   line-height:1.65;
   overflow-x:hidden;
 }
 
 /* 表单控件不继承字重，统一加粗 */
 button,input,select,textarea{font-weight:700}
+/* 触屏：去掉点击高亮与 300ms 延迟 */
+button,a,summary{-webkit-tap-highlight-color:transparent}
+button,summary{touch-action:manipulation}
 
 main,.top,.ribbon{position:relative;z-index:1}
 
@@ -312,6 +318,9 @@ summary.block-title:hover .chev{stroke:var(--pink)}
 }
 #search::placeholder{color:var(--dim)}
 #search:focus{border-color:var(--pink)}
+/* 隐藏浏览器自带的清除叉，只保留自定义的 */
+#search::-webkit-search-cancel-button,
+#search::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
 .clear{
   position:absolute;
   right:8px;
@@ -327,6 +336,8 @@ summary.block-title:hover .chev{stroke:var(--pink)}
   place-items:center;
 }
 .clear:hover{background:var(--line-2);color:var(--text)}
+/* hidden 属性要压过 .clear 的 display */
+.clear[hidden]{display:none}
 
 .result-line{
   margin:0 0 11px;
@@ -406,6 +417,7 @@ summary.block-title:hover .chev{stroke:var(--pink)}
   background:var(--panel);
   border:1px solid var(--line-2);
   overflow:hidden;
+  scroll-margin-top:10px;
 }
 
 /* 左侧：名称在上，立绘在下 */
@@ -720,42 +732,112 @@ mark{
 }
 
 @media (max-width:620px){
-  .top{padding:20px 16px 2px}
-  main{padding:0 14px 28px}
-  .block{margin:26px 0 40px}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px}
-  .card-toggle{padding:8px 6px 9px}
+  /* 顶部：标题与主题按钮同排，压缩首屏留白 */
+  .top{padding:12px 14px 0;gap:8px}
+  .kicker{padding:6px 14px;font-size:15px;letter-spacing:.08em}
+  .theme-btn{padding:6px 11px;font-size:11px;gap:5px}
+  main{padding:0 14px 26px}
+  .block{margin:22px 0 34px}
+  .ribbon{height:24px}
+  .ribbon-track{font-size:10px}
+  .block-title{font-size:16px;margin-bottom:9px}
+
+  /* 角色格：320 窄屏也保住 3 列 */
+  .grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+  .card-toggle{padding:7px 6px 8px;gap:3px}
   .card-toggle .char-name{font-size:11.5px}
   .card-toggle .char-img{height:76px}
-  .detail .card-side{flex-basis:112px;padding:11px 9px 12px}
-  .char-name{font-size:15px}
-  .char-img{max-height:130px}
-  .detail .card-body{padding:11px 11px 12px;gap:7px}
-  .route{flex-wrap:wrap;gap:7px}
-  .card-main > .gift{flex-wrap:wrap;gap:7px}
-  .route-stats,
-  .card-main > .gift .route-stats{
-    width:100%;
+
+  /* 详情：立绘收成顶部横条，正文拿到整行宽度 */
+  .detail{flex-direction:column}
+  .detail .card-side{
     flex:0 0 auto;
+    width:100%;
     flex-direction:row;
     align-items:center;
-    justify-content:flex-end;
-    gap:8px;
-    padding:5px 9px;
+    gap:10px;
+    padding:8px 11px;
+    border-right:0;
+    border-bottom:1px solid var(--line);
   }
-  /* 横排时两个数值仍等宽，右对齐成两列 */
+  .detail .card-side .char-img{
+    order:-1;
+    flex:0 0 44px;
+    width:44px;
+    height:44px;
+    max-height:44px;
+  }
+  .detail .card-side .char-name{
+    flex:1;
+    min-width:0;
+    width:auto;
+    text-align:left;
+    font-size:16px;
+    letter-spacing:.08em;
+  }
+  .detail .card-side .detail-close{
+    flex:0 0 auto;
+    margin-top:0;
+    padding:5px 13px;
+    font-size:11px;
+  }
+  .detail .card-body{padding:10px 11px 11px;gap:7px}
+
+  /* 路线行：标签与数值同排，物品与获取地点占满整行 */
+  .route,
+  .card-main > .gift{flex-wrap:wrap;gap:5px 8px;padding:7px 9px}
+  .route-tag,
+  .gift-tag{order:1}
+  .route-stats,
+  .card-main > .gift .route-stats{
+    order:2;
+    margin-left:auto;
+    flex:0 0 auto;
+    width:auto;
+    flex-direction:row;
+    align-items:center;
+    gap:8px;
+    padding:3px 7px;
+  }
   .route-stats .stat{
     flex:0 0 var(--stat-w-m);
     width:var(--stat-w-m);
     justify-content:space-between;
     gap:4px;
   }
-  .item-name{font-size:12px}
-  .calc{padding:8px 9px}
-  .calc-field input{width:56px}
-  .calc-out{font-size:10.5px;gap:4px}
+  .route-main,
+  .card-main > .gift .route-main{order:3;flex:1 0 100%;width:100%}
+  .route-items{gap:3px 8px}
+  .item img{width:28px;height:28px}
+  .item-name{font-size:12.5px}
+  .route-where{font-size:11px;margin-top:1px}
+  .gift-note{font-size:11.5px}
+
+  /* 计算框：等级与好感并排，数值框放大到 16px 避免 iOS 聚焦缩放 */
+  .calc{padding:8px 10px;gap:7px}
+  .calc-in{flex-direction:row;flex-wrap:wrap;align-items:center;gap:5px 10px}
+  .calc-field{font-size:11.5px;gap:4px}
+  .calc-field input{width:62px;padding:1px 4px;font-size:16px;line-height:1.35}
+  .calc-need{font-size:11px}
+  .calc-out{font-size:11px;gap:4px}
+
+  /* 搜索框同样用 16px，iOS 不放大 */
+  #search{font-size:16px;padding:10px 38px 10px 40px}
+  .result-line{font-size:11.5px}
+
   .exp-track{grid-template-columns:repeat(4,1fr);gap:6px}
-  .exp-track .val{font-size:14px}
+  .exp-track li{padding:9px 4px 7px}
+  .exp-track .val{font-size:13.5px}
+  .exp-track .lv{font-size:10px;margin-bottom:5px}
+  .exp-hint{font-size:11.5px}
+  .switch-btn{padding:6px 14px;font-size:12px}
+}
+
+/* 极窄屏（≤340）：主题按钮只留图标，标题不换行 */
+@media (max-width:340px){
+  .theme-btn span{display:none}
+  .theme-btn{padding:7px 9px}
+  .kicker{font-size:14px;padding:5px 12px;letter-spacing:.06em}
 }
 
 @media (prefers-reduced-motion:reduce){
