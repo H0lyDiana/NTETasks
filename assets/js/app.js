@@ -214,16 +214,45 @@
     });
   }
 
+  // 本页最后一次读到 / 写下的存档原文。本机每次改动都会立刻落盘，所以
+  // 存档原文变了就说明是另一个标签页（或窗口）改的，不是本页的进度。
+  let lastRaw = "";
+
+  function readRaw() {
+    try { return localStorage.getItem(storeKey()) || ""; } catch (e) { return ""; }
+  }
+
   function load() {
     try {
       const raw = localStorage.getItem(storeKey());
+      lastRaw = raw || "";
       applyData(raw ? JSON.parse(raw) : null);
     } catch (e) { /* 忽略损坏的存档 */ }
   }
 
+  // 把别的标签页写下的存档并进来再重绘，防止本页拿内存里的旧进度把新进度盖回去。
+  // 勾选仍按 doneAt 逐条判定（取消勾选也算一次改动），不会被旧状态按并集勾回来。
+  function syncFromStore(redraw) {
+    const raw = readRaw();
+    if (!raw || raw === lastRaw) return false;
+    let incoming = null;
+    try { incoming = JSON.parse(raw); } catch (e) { lastRaw = raw; return false; }
+    const before = JSON.stringify(snapshot());
+    lastRaw = raw;
+    applyData(mergeData(incoming, snapshot()));
+    settleResets(Date.now());
+    const changed = JSON.stringify(snapshot()) !== before;
+    if (changed && redraw) renderAll();
+    return changed;
+  }
+
   function save(thenSync) {
+    // 写盘之前先并一次：另一个标签页可能刚勾过，别把它的进度抹掉
+    syncFromStore(true);
+    const raw = JSON.stringify(snapshot());
+    lastRaw = raw;
     try {
-      localStorage.setItem(storeKey(), JSON.stringify(snapshot()));
+      localStorage.setItem(storeKey(), raw);
     } catch (e) { /* 无痕模式下忽略 */ }
     if (thenSync !== false) scheduleSync();
   }
@@ -262,6 +291,8 @@
   async function pushCloud() {
     if (!state.user || !cloudOn()) return;
     if (syncing) { syncAgain = true; return; }
+    // 推之前先并一次本机存档，别把别的标签页刚做的进度推成旧的
+    syncFromStore(true);
     syncing = true;
     try {
       await CLOUD.push(state.user.id, snapshot());
@@ -1205,6 +1236,8 @@
       const merged = mergeData(res.data, snapshot());
       state.user = { id: String(res.id), name: res.name || name };
       writeSession(state.user);
+      // 换了账号档：以刚合并好的结果为准，别把本机旧账号档再并回来
+      lastRaw = readRaw();
       applyData(merged);
       if (!state.name) state.name = state.user.name;
       save(false);
@@ -1381,8 +1414,21 @@
     // 兜底：还有没推上去的改动就每 45 秒补一次；切到后台时立刻冲刷
     setInterval(() => { if (dirty && state.user) pushCloud(); }, 45000);
     document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden" && dirty && state.user) pushCloud();
+      if (document.visibilityState === "hidden") {
+        if (dirty && state.user) pushCloud();
+      } else {
+        // 回到这个标签页：先把别的标签页写的进度并进来，再按合并结果重绘
+        if (syncFromStore(true) && dirty && state.user) scheduleSync();
+      }
     });
+    // 同一浏览器另开一个标签页 / 窗口时，任何一边改动都同步过来
+    window.addEventListener("storage", (e) => {
+      if (!e || e.key !== storeKey()) return;
+      syncFromStore(true);
+    });
+    // bfcache 回退、窗口重新获得焦点也补一次（storage 事件可能没送到）
+    window.addEventListener("pageshow", () => syncFromStore(true));
+    window.addEventListener("focus", () => syncFromStore(true));
     // 上次登录过就先把云端存档拉下来合并一次
     if (state.user) pullCloud();
   }
