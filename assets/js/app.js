@@ -121,11 +121,20 @@
     const known = knownIds();
     const doneAt = doneStampMap(s.doneAt);
     const picked = Array.isArray(s.done) ? [...new Set(s.done)].filter((id) => known.has(id)) : [];
+    const done = [...unifyLinks(picked, doneAt)];
+    // 不变式：计时起点只属于「这一轮已完成」的任务。done 里没有它的，说明这一轮早就重置过，
+    // 存档里残留的起点必须丢掉 —— 否则会立刻满足「已满 N 小时」，tick 每秒再判一次，反复重置。
+    const doneSet = new Set(done);
+    const startedRaw = numMap(s.started);
+    const started = {};
+    Object.keys(startedRaw).forEach((k) => {
+      if (doneSet.has(Number(k))) started[k] = startedRaw[k];
+    });
     return {
-      done: [...unifyLinks(picked, doneAt)],
+      done: done,
       name: typeof s.name === "string" ? s.name : "",
       cat: DATA.categories.some((c) => c.key === s.cat) ? s.cat : "daily",
-      started: numMap(s.started),
+      started: started,
       counts: numMap(s.counts),
       perHour: numMap(s.perHour),
       lastReset: stampMap(s.lastReset),
