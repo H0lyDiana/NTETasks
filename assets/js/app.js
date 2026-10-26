@@ -230,6 +230,22 @@
     } catch (e) { /* 忽略损坏的存档 */ }
   }
 
+  function writeStore(raw) {
+    lastRaw = raw;
+    try {
+      localStorage.setItem(storeKey(), raw);
+    } catch (e) { /* 无痕模式下忽略 */ }
+  }
+
+  // 本页的勾选记录里，有没有比 incoming 那份更晚的「改动时刻」
+  function marksNewer(snap, incoming) {
+    const a = snap.doneAt || {};
+    const b = (incoming && incoming.doneAt) || {};
+    const keys = new Set(Object.keys(a).concat(Object.keys(b)));
+    for (const k of keys) if ((a[k] || 0) > (b[k] || 0)) return true;
+    return false;
+  }
+
   // 把别的标签页写下的存档并进来再重绘，防止本页拿内存里的旧进度把新进度盖回去。
   // 勾选仍按 doneAt 逐条判定（取消勾选也算一次改动），不会被旧状态按并集勾回来。
   function syncFromStore(redraw) {
@@ -241,19 +257,19 @@
     lastRaw = raw;
     applyData(mergeData(incoming, snapshot()));
     settleResets(Date.now());
-    const changed = JSON.stringify(snapshot()) !== before;
+    const snap = snapshot();
+    const changed = JSON.stringify(snap) !== before;
     if (changed && redraw) renderAll();
+    // 本页手上的勾选比盘上那份新（另一处是按旧状态写的）：把合并结果写回去，
+    // 别让存档停在旧状态上。只比勾选时间戳，逐次收敛，不会两边来回写。
+    if (marksNewer(snap, incoming)) writeStore(JSON.stringify(snap));
     return changed;
   }
 
   function save(thenSync) {
     // 写盘之前先并一次：另一个标签页可能刚勾过，别把它的进度抹掉
     syncFromStore(true);
-    const raw = JSON.stringify(snapshot());
-    lastRaw = raw;
-    try {
-      localStorage.setItem(storeKey(), raw);
-    } catch (e) { /* 无痕模式下忽略 */ }
+    writeStore(JSON.stringify(snapshot()));
     if (thenSync !== false) scheduleSync();
   }
 
@@ -295,7 +311,17 @@
     syncFromStore(true);
     syncing = true;
     try {
-      await CLOUD.push(state.user.id, snapshot());
+      const res = await CLOUD.push(state.user.id, snapshot());
+      // 云端会把这次推的和它手上那份合并后回传：以合并结果为准，
+      // 别的设备刚勾的进度顺手收进来
+      if (res && res.data) {
+        const before = JSON.stringify(snapshot());
+        applyData(mergeData(res.data, snapshot()));
+        if (JSON.stringify(snapshot()) !== before) {
+          writeStore(JSON.stringify(snapshot()));
+          renderAll();
+        }
+      }
       dirty = false;
       syncFailed = false;
       setSyncLabel(true);
@@ -329,6 +355,39 @@
     } catch (e) {
       syncFailed = true;
       setSyncLabel(false);
+    }
+  }
+
+  // 回到这个页面时从云端取一次最新的（换设备、旧标签页写坏本机存档都靠它纠正）。
+  // 只拉不推：云端那份已经是合并过的，本机多出来的改动下次改动时自然会推上去。
+  let pulling = false;
+  let lastPullAt = 0;
+  async function refreshFromCloud(force) {
+    if (!state.user || !cloudOn() || pulling || syncing) return false;
+    const now = Date.now();
+    if (!force && now - lastPullAt < 20000) return false;
+    lastPullAt = now;
+    pulling = true;
+    try {
+      const res = await CLOUD.pull(state.user.id);
+      if (!res || !res.data) return false;
+      const before = JSON.stringify(snapshot());
+      applyData(mergeData(res.data, snapshot()));
+      settleResets(now);
+      const changed = JSON.stringify(snapshot()) !== before;
+      if (changed) {
+        writeStore(JSON.stringify(snapshot()));
+        renderAll();
+      }
+      syncFailed = false;
+      setSyncLabel(true);
+      return changed;
+    } catch (e) {
+      syncFailed = true;
+      setSyncLabel(false);
+      return false;
+    } finally {
+      pulling = false;
     }
   }
 
@@ -964,12 +1023,13 @@
   }
 
   // 结束一轮：keepCount 为真时保留计数（计时/收益到点的正常重置），手动撤销则扣回去
-  function endRound(id, keepCount) {
+  // stamp 是这次取消的时刻，默认现在；自动重置传重置点本身，合并时不会盖掉别处更晚的勾
+  function endRound(id, keepCount, stamp) {
     const t = DATA.tasks.find((x) => x.id === id);
     const m = t ? mechOf(t) : { countStep: 0 };
     const i = state.done.indexOf(id);
     if (i >= 0) state.done.splice(i, 1);
-    state.doneAt[id] = Date.now(); // 记下这次取消，合并时不会被云端旧存档勾回来
+    state.doneAt[id] = stamp == null ? Date.now() : stamp;
     delete state.started[id];
     if (!keepCount && m.countStep) {
       state.counts[id] = Math.max(0, (state.counts[id] || 0) - m.countStep);
@@ -1028,10 +1088,13 @@
       const timeUp = !!m.clock && now - start >= m.clock * 3600000;
       const earnUp = !!m.earn && per > 0 && earnedOf(id, start, now) >= m.earn;
       if (!timeUp && !earnUp) return;
+      // 计时到点的那一轮，真正的重置时刻是「起点 + N 小时」；要是页面睡了很久，
+      // 用 now 盖章会比别处新勾的进度还晚，合并时会把它当成后发生的取消
+      const stamp = timeUp ? start + m.clock * 3600000 : now;
       // 主任务到点 → 跟随它完成的从属一起重置；从属自己到点只清自己
       const scope = owner != null ? [id] : [id].concat(followingKids(id));
       scope.forEach((x) => {
-        endRound(x, true);
+        endRound(x, true, stamp);
         cleared.add(x);
       });
       hits.push(t.title);
@@ -1081,10 +1144,11 @@
         scope.forEach((x) => { if (stale(x, boundary)) clear.add(x); });
       });
       if (clear.size) {
-        const stamp = Date.now();
         clear.forEach((id) => {
           if (!state.done.includes(id)) return;
-          state.doneAt[id] = stamp; // 自动重置也算一次取消，合并时以它为准
+          // 盖章用重置点本身，不用「现在」：这次清除的意思是「截至重置点还没做」，
+          // 重置点之后别处新勾的进度（时间戳更晚）合并时就不会被判成更晚的取消
+          state.doneAt[id] = boundary;
           delete state.started[id];
         });
         state.done = state.done.filter((id) => !clear.has(id));
@@ -1413,13 +1477,18 @@
     setInterval(renderClockLabels, 30000);
     // 兜底：还有没推上去的改动就每 45 秒补一次；切到后台时立刻冲刷
     setInterval(() => { if (dirty && state.user) pushCloud(); }, 45000);
+    let hiddenAt = 0;
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") {
+        hiddenAt = Date.now();
         if (dirty && state.user) pushCloud();
-      } else {
-        // 回到这个标签页：先把别的标签页写的进度并进来，再按合并结果重绘
-        if (syncFromStore(true) && dirty && state.user) scheduleSync();
+        return;
       }
+      // 回到这个页面：先并本机存档（同浏览器别的标签页写的），
+      // 离开得够久再顺带从云端取一次（换设备、或旧页面把本机存档写旧了）
+      const away = hiddenAt ? Date.now() - hiddenAt : 0;
+      syncFromStore(true);
+      if (state.user && away > 8000) refreshFromCloud();
     });
     // 同一浏览器另开一个标签页 / 窗口时，任何一边改动都同步过来
     window.addEventListener("storage", (e) => {
