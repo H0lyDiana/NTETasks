@@ -183,8 +183,8 @@
     return done.sort((x, y) => (order.get(x) ?? 0) - (order.get(y) ?? 0));
   }
 
-  // 登录 / 进页面时的合并：云端为基础，本机进度并进来
-  // 勾选取「最后一次改动」、次数取较大值、本机正在跑的计时与收益优先
+  // 登录 / 进页面 / 别的标签页写入时的合并：base 与 local 对称处理
+  // 勾选取「最后一次改动」、次数取较大值、计时起点只跟着已完成的那一轮走
   function mergeData(base, local) {
     const b = normalize(base);
     const l = normalize(local);
@@ -202,11 +202,25 @@
     Object.keys(l.doneAt).forEach((k) => {
       doneAt[k] = Math.max(doneAt[k] || 0, l.doneAt[k]);
     });
+    // 计时起点（clock / earn）只对「这一轮还没被重置」的任务有意义：合并后 done 里没有它的，
+    // 说明已经重置过，另一份存档残留的旧起点必须丢掉 —— 否则一合并就立刻又满足「已满 N 小时」，
+    // tick 每秒再判一次，任务会反复自己重置（26 塔吉多的仓库就是这条踩的）。
+    // 两端都有时取较晚的一次，避免被更早的起点提前触发。
+    const done = mergeDone(b, l);
+    const doneSet = new Set(done);
+    const started = {};
+    new Set(Object.keys(b.started).concat(Object.keys(l.started))).forEach((k) => {
+      const id = Number(k);
+      if (!doneSet.has(id)) return;
+      const sb = b.started[id];
+      const sl = l.started[id];
+      started[k] = Math.max(sb == null ? 0 : sb, sl == null ? 0 : sl);
+    });
     return normalize({
-      done: mergeDone(b, l),
+      done: done,
       name: l.name || b.name,
       cat: l.cat || b.cat,
-      started: Object.assign({}, b.started, l.started),
+      started: started,
       counts: counts,
       perHour: Object.assign({}, b.perHour, l.perHour),
       lastReset: lastReset,
