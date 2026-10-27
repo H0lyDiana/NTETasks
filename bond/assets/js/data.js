@@ -1,4 +1,4 @@
-// 数据来源：《异环 · 祷歌为谁而诵 V1.4》全角色赠礼推荐（NTEBond）
+// 数据来源：《异环 · 致电，空想迷数 V1.5》全角色赠礼推荐（NTEBond）
 // 道具图标取自 everness.info 道具库，名称已逐一核对
 // levelExp：0→1 … 9→10 每级所需好感度，累计值由前端累加
 window.NTE_DATA = {
@@ -45,7 +45,7 @@ window.NTE_DATA = {
       cheap: { items: ["猫猫猛锤荔浦芋头布丁奶茶"], fav: 100, fons: 450, where: "抽风猫奶茶铺（桥间地/绘空町/米格尔区/新赫兰德区）" },
       gift:  { items: ["幻想曲"], fav: 200, fons: 3000, where: "集山忘野花店（桥间地/绘空町/米格尔区/新赫兰德区）" } },
     { name: "埃德嘉",
-      fast:  { items: ["曲曲小仔"], fav: 400, fons: 12000, where: "噗卡淘淘铺（噗卡乐园）" },
+      fast:  { items: ["几何夜"], fav: 400, fons: 10000, where: "Oops!Chest礼品店（绘空町）" },
       cheap: { items: ["咔叽玛薯霸"], fav: 100, fons: 300, where: "咔叽玛快餐店（桥间地/绘空町/米格尔区）" },
       gift:  { items: ["老大的肯定", "HAHA"], fav: 200, fons: 4000, where: "白鲸书店（桥间地/绘空町/米格尔区/新赫兰德区）" } },
     { name: "浔",
