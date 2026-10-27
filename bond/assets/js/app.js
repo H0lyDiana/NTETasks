@@ -1,11 +1,12 @@
 /* ============================================================
-   异环 · 致电，空想迷数 V1.5 赠礼速查 · 交互
+   异环 · 赠礼速查 · 交互（中文 / English）
    ============================================================ */
 (function () {
   "use strict";
 
   const D = window.NTE_DATA;
-  if (!D) return;
+  const I18N = window.NTE_I18N;
+  if (!D || !I18N) return;
 
   const $ = (s) => document.querySelector(s);
   const root = document.documentElement;
@@ -14,29 +15,54 @@
   const resultLine = $("#resultLine");
   const searchEl = $("#search");
   const clearBtn = $("#clearSearch");
+  const langBtn = $("#langBtn");
+  const langLabel = $("#langLabel");
+
+  /* ---------------- 语言 ---------------- */
+  const LANG_KEY = "nte-lang";
+  let lang = "zh";
+  try { if (localStorage.getItem(LANG_KEY) === "en") lang = "en"; } catch (e) { /* 隐私模式 */ }
+
+  const isEn = () => lang === "en";
+
+  function t(key, vars) {
+    const d = I18N.ui[lang] || I18N.ui.zh;
+    let s = d[key];
+    if (s == null) s = I18N.ui.zh[key] != null ? I18N.ui.zh[key] : key;
+    if (vars) {
+      Object.keys(vars).forEach((k) => {
+        s = s.split("{" + k + "}").join(vars[k]);
+      });
+    }
+    return s;
+  }
+
+  // 数据里一律存中文名（图标文件名也用它），只在显示时换英文
+  const charName = (zh) => (isEn() && I18N.charEn[zh]) || zh;
+  const itemName = (zh) => (isEn() && I18N.itemEn[zh]) || zh;
+  const whereName = (zh) => (isEn() && I18N.whereEn[zh]) || zh;
 
   /* ---------------- 主题 ---------------- */
   const themeBtn = $("#themeBtn");
   const themeLabel = $("#themeLabel");
   let theme = root.dataset.theme === "light" ? "light" : "dark";
 
-  function applyTheme(t) {
-    if (t === "light") root.dataset.theme = "light";
+  function applyTheme(mode) {
+    theme = mode;
+    if (mode === "light") root.dataset.theme = "light";
     else delete root.dataset.theme;
-    themeLabel.textContent = t === "light" ? "黑夜" : "白昼";
-    themeBtn.setAttribute("aria-label", t === "light" ? "切换到黑夜主题" : "切换到白昼主题");
-    try { localStorage.setItem("nte-theme", t); } catch (e) { /* 隐私模式下忽略 */ }
+    themeLabel.textContent = t(mode === "light" ? "themeToDark" : "themeToLight");
+    themeBtn.setAttribute("aria-label", t(mode === "light" ? "themeAriaLight" : "themeAriaDark"));
+    try { localStorage.setItem("nte-theme", mode); } catch (e) { /* 隐私模式下忽略 */ }
   }
-  applyTheme(theme);
 
   themeBtn.addEventListener("click", () => {
-    theme = theme === "light" ? "dark" : "light";
-    applyTheme(theme);
+    applyTheme(theme === "light" ? "dark" : "light");
   });
 
   const ROUTES = [
-    { key: "fast", tag: "速升", cls: "fast" },
-    { key: "cheap", tag: "省钱", cls: "cheap" }
+    { key: "fast", tag: "fast", cls: "fast" },
+    { key: "cheap", tag: "cheap", cls: "cheap" }
   ];
 
   /* ---------------- 工具 ---------------- */
@@ -62,7 +88,7 @@
   function itemHTML(n) {
     return `<span class="item">
       <img src="${itemIcon(n)}" alt="" loading="lazy" width="22" height="22">
-      <span class="item-name">${highlight(n, currentQuery)}</span>
+      <span class="item-name">${highlight(itemName(n), currentQuery)}</span>
     </span>`;
   }
 
@@ -79,16 +105,14 @@
 
   function renderExp() {
     const arr = expMode === "per" ? D.levelExp : CUMULATIVE;
-    hint.textContent =
-      expMode === "per" ? "升到下一级需要的好感度" : "从 0 级累计升到该级所需好感度";
+    hint.textContent = expMode === "per" ? t("expHintPer") : t("expHintCum");
     track.innerHTML = arr
       .map((v, i) => `<li>
-          <span class="lv">${i}→${i + 1}级</span>
+          <span class="lv">${esc(t("expLevel", { a: i, b: i + 1 }))}</span>
           <span class="val">${fmt(v)}</span>
         </li>`)
       .join("");
   }
-  renderExp();
 
   document.querySelectorAll(".switch-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -102,7 +126,7 @@
   /* ---------------- 升级计算 ---------------- */
   const MAX_LV = D.levelExp.length;
   const TOTAL_EXP = CUMULATIVE[MAX_LV - 1];
-  const CALC = {}; // 角色名 -> { lv, fav }，重渲染后仍保留输入
+  const CALC = {}; // 角色中文名 -> { lv, fav }，切换语言不丢输入
 
   function stateOf(name) {
     return CALC[name] || (CALC[name] = { lv: 0, fav: 0 });
@@ -116,19 +140,20 @@
   }
 
   const CALC_ROWS = [
-    { tag: "速升", cls: "fast", key: "fast" },
-    { tag: "省钱", cls: "cheap", key: "cheap" },
-    { tag: "均衡", cls: "gift", key: "gift" }
+    { key: "fast", cls: "fast" },
+    { key: "cheap", cls: "cheap" },
+    { key: "gift", cls: "gift" }
   ];
 
   function calcResHTML(c, rem) {
-    return CALC_ROWS.map(({ tag, cls, key }) => {
+    return CALC_ROWS.map(({ key, cls }) => {
       const r = c[key];
+      const label = esc(t(key));
       if (!r.items.length) {
-        return `<span class="calc-res none"><em class="cr-tag ${cls}">${tag}</em>—</span>`;
+        return `<span class="calc-res none"><em class="cr-tag ${cls}">${label}</em>—</span>`;
       }
       const n = Math.ceil(rem / r.fav);
-      return `<span class="calc-res"><em class="cr-tag ${cls}">${tag}</em><b>${fmt(n)}</b> 份 · <b>${fmt(n * r.fons)}</b> ◈</span>`;
+      return `<span class="calc-res"><em class="cr-tag ${cls}">${label}</em><b>${fmt(n)}</b> ${esc(t("pcs"))} · <b>${fmt(n * r.fons)}</b> ◈</span>`;
     }).join("");
   }
 
@@ -136,8 +161,8 @@
     const st = stateOf(c.name);
     return `<div class="calc" data-char="${esc(c.name)}">
       <div class="calc-in">
-        <label class="calc-field" title="角色当前好感等级 0-${MAX_LV}">等级<input type="number" inputmode="numeric" min="0" max="${MAX_LV}" step="1" value="${st.lv}" data-k="lv"></label>
-        <label class="calc-field" title="当前等级内的好感进度">好感<input type="number" inputmode="numeric" min="0" step="1" value="${st.fav}" data-k="fav"></label>
+        <label class="calc-field" title="${esc(t("levelTitle"))}">${esc(t("level"))}<input type="number" inputmode="numeric" min="0" max="${MAX_LV}" step="1" value="${st.lv}" data-k="lv"></label>
+        <label class="calc-field" title="${esc(t("affinityTitle"))}">${esc(t("affinity"))}<input type="number" inputmode="numeric" min="0" step="1" value="${st.fav}" data-k="fav"></label>
         <span class="calc-need" data-out="need"></span>
       </div>
       <div class="calc-out" data-out="res"></div>
@@ -148,8 +173,8 @@
     const st = stateOf(c.name);
     const rem = remainOf(st.lv, st.fav);
     box.querySelector('[data-out="need"]').innerHTML = rem
-      ? `还需 <b>♥${fmt(rem)}</b> 到满级`
-      : `<b>已满级</b>`;
+      ? t("need", { v: fmt(rem) })
+      : t("maxed");
     box.querySelector('[data-out="res"]').innerHTML = rem ? calcResHTML(c, rem) : "";
   }
 
@@ -185,10 +210,10 @@
       : `<span class="item-name">—</span>`;
 
     return `<div class="route ${route.cls}">
-      <span class="route-tag">${route.tag}</span>
+      <span class="route-tag">${esc(t(route.tag))}</span>
       <div class="route-main">
         <div class="route-items">${items}</div>
-        <div class="route-where">${esc(r.where)}${r.note ? " · " + esc(r.note) : ""}</div>
+        <div class="route-where">${esc(whereName(r.where))}${r.note && !isEn() ? " · " + esc(r.note) : ""}</div>
       </div>
       <div class="route-stats">
         <span class="stat fav"><i>♥</i>${fmt(r.fav)}</span>
@@ -199,10 +224,11 @@
 
   function cardHTML(c) {
     const open = OPEN === c.name;
+    const label = charName(c.name);
     return `<article class="card${open ? " is-open" : ""}" data-char="${esc(c.name)}">
       <button class="card-toggle" type="button" aria-expanded="${open}"
-        aria-label="${esc(c.name)}：${open ? "收起" : "展开"}赠礼路线">
-        <span class="char-name">${highlight(c.name, currentQuery)}</span>
+        aria-label="${esc(t("expandAria", { name: label, act: open ? t("close") : t("expand") }))}">
+        <span class="char-name">${highlight(label, currentQuery)}</span>
         <img class="char-img" src="assets/img/chars/${encodeURIComponent(c.name)}.webp" alt="" loading="lazy">
         <svg class="chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
@@ -213,25 +239,25 @@
     const g = c.gift;
     const hasGift = g.items.length > 0;
     const giftInner = hasGift
-      ? `<span class="gift-tag">均衡</span>
+      ? `<span class="gift-tag">${esc(t("gift"))}</span>
          <div class="route-main">
            <div class="route-items">
              ${g.items.map(itemHTML).join(`<span class="alt">/</span>`)}
            </div>
-           <div class="route-where">${esc(g.where)}</div>
+           <div class="route-where">${esc(whereName(g.where))}</div>
          </div>
          <div class="route-stats">
            <span class="stat fav"><i>♥</i>${fmt(g.fav)}</span>
            <span class="stat fons"><i>◈</i>${fmt(g.fons)}</span>
          </div>`
-      : `<span class="gift-tag">均衡</span>
-         <div class="route-main"><span class="gift-note">${esc(g.note || "无")}</span></div>`;
+      : `<span class="gift-tag">${esc(t("gift"))}</span>
+         <div class="route-main"><span class="gift-note">${esc(isEn() ? t("noGift") : (g.note || t("none")))}</span></div>`;
 
-    return `<section class="detail" data-char="${esc(c.name)}" aria-label="${esc(c.name)} 的赠礼路线">
+    return `<section class="detail" data-char="${esc(c.name)}" aria-label="${esc(t("detailAria", { name: charName(c.name) }))}">
       <div class="card-side">
-        <h3 class="char-name">${highlight(c.name, currentQuery)}</h3>
-        <img class="char-img" src="assets/img/chars/${encodeURIComponent(c.name)}.webp" alt="${esc(c.name)}" loading="lazy">
-        <button class="detail-close" type="button">收起</button>
+        <h3 class="char-name">${highlight(charName(c.name), currentQuery)}</h3>
+        <img class="char-img" src="assets/img/chars/${encodeURIComponent(c.name)}.webp" alt="${esc(charName(c.name))}" loading="lazy">
+        <button class="detail-close" type="button">${esc(t("close"))}</button>
       </div>
       <div class="card-body">
         <div class="card-main">
@@ -249,7 +275,7 @@
   }
 
   // 面板插在角色所在那一行的后面，整行占满，前面的格子不会留空
-  function mountDetail(c) {
+  function mountDetail(c, opts) {
     closeDetail();
     let anchor = null;
     grid.querySelectorAll(".card").forEach((el) => {
@@ -270,11 +296,13 @@
     const box = panel.querySelector(".calc");
     if (box) paintCalc(box, c);
 
-    // 手机上点了靠下的角色，面板会落在视口外，补一次滚动
-    const r = panel.getBoundingClientRect();
-    if (r.top < 0 || r.top > window.innerHeight - 140) {
-      const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
-      panel.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+    // 只有用户点了头像才滚动，搜索 / 切语言时不打断阅读位置
+    if (!opts || opts.scroll !== false) {
+      const r = panel.getBoundingClientRect();
+      if (r.top < 0 || r.top > window.innerHeight - 140) {
+        const reduce = window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+        panel.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
+      }
     }
   }
 
@@ -293,21 +321,21 @@
   /* ---------------- 过滤 ---------------- */
   let currentQuery = "";
 
-  // 窄屏放不下长示例，换成短提示，免得被截断
-  if (window.matchMedia("(max-width:620px)").matches) {
-    searchEl.placeholder = "搜角色或赠礼名称";
+  function updatePlaceholder() {
+    const narrow = window.matchMedia("(max-width:620px)").matches;
+    searchEl.placeholder = narrow ? t("searchPhShort") : t("searchPh");
   }
 
+  // 中英关键词都能搜到：两种语言的名字一起进索引，与当前显示语言无关
   function match(c, q) {
     if (!q) return true;
-    const hay = [c.name]
-      .concat(c.fast.items, c.cheap.items, c.gift.items, [
-        c.fast.where, c.cheap.where, c.gift.where
-      ])
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    return hay.includes(q.toLowerCase());
+    const parts = [c.name, I18N.charEn[c.name] || ""];
+    [c.fast, c.cheap, c.gift].forEach((r) => {
+      r.items.forEach((n) => parts.push(n, I18N.itemEn[n] || ""));
+      if (r.where) parts.push(r.where, I18N.whereEn[r.where] || "");
+      if (r.note) parts.push(r.note);
+    });
+    return parts.filter(Boolean).join(" ").toLowerCase().includes(q.toLowerCase());
   }
 
   function render() {
@@ -319,13 +347,33 @@
 
     const openChar = OPEN ? list.find((c) => c.name === OPEN) : null;
     OPEN = openChar ? openChar.name : null;
-    if (openChar) mountDetail(openChar);
+    if (openChar) mountDetail(openChar, { scroll: false });
 
     resultLine.innerHTML = q
-      ? `匹配到 <b>${list.length}</b> 位角色 · 关键词「${esc(q)}」`
-      : `共 <b>${D.characters.length}</b> 位角色 · 点击头像展开赠礼路线`;
+      ? t("resultMatch", { n: list.length, q: esc(q) })
+      : t("resultAll", { n: D.characters.length });
 
     clearBtn.hidden = !q;
+  }
+
+  /* ---------------- 静态文案 ---------------- */
+  function applyStatic() {
+    root.lang = isEn() ? "en" : "zh-Hans";
+    document.title = t("title");
+    const md = document.querySelector('meta[name="description"]');
+    if (md) md.setAttribute("content", t("desc"));
+    document.querySelectorAll("[data-i18n]").forEach((el) => {
+      el.textContent = t(el.dataset.i18n);
+    });
+    const sw = document.querySelector(".switch");
+    if (sw) sw.setAttribute("aria-label", t("expModeAria"));
+    searchEl.setAttribute("aria-label", t("searchAria"));
+    clearBtn.setAttribute("aria-label", t("clearAria"));
+    langBtn.setAttribute("aria-label", t("langAria"));
+    langBtn.title = t("langAria");
+    langLabel.textContent = t("langLabel");
+    updatePlaceholder();
+    applyTheme(theme);
   }
 
   /* ---------------- 事件 ---------------- */
@@ -356,5 +404,18 @@
   grid.addEventListener("input", (e) => onCalcInput(e, false));
   grid.addEventListener("change", (e) => onCalcInput(e, true));
 
+  langBtn.addEventListener("click", () => {
+    lang = isEn() ? "zh" : "en";
+    try { localStorage.setItem(LANG_KEY, lang); } catch (e) { /* 忽略 */ }
+    applyStatic();
+    renderExp();
+    render();
+  });
+
+  window.addEventListener("resize", updatePlaceholder);
+
+  /* ---------------- 启动 ---------------- */
+  applyStatic();
+  renderExp();
   render();
 })();

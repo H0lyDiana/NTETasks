@@ -169,6 +169,16 @@ main,.top,.ribbon{position:relative;z-index:1}
 html:not([data-theme="light"]) .ic-moon,
 html[data-theme="light"] .ic-sun{display:none}
 
+/* 主题 + 语言按钮成组，换行时两个一起走 */
+.tools{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex:0 0 auto;
+}
+/* 英文的 Cheapest / Balanced 比中文标签宽，计算框标签列要跟着放宽 */
+html[lang="en"]{--cr-w:54px}
+
 /* ---------------- 区块 ---------------- */
 main{max-width:var(--maxw);margin:0 auto;padding:0 18px 26px}
 
@@ -732,10 +742,11 @@ mark{
 }
 
 @media (max-width:620px){
-  /* 顶部：标题与主题按钮同排，压缩首屏留白 */
+  /* 顶部：标题与两个按钮同排，压缩首屏留白 */
   .top{padding:12px 14px 0;gap:8px}
-  .kicker{padding:6px 14px;font-size:15px;letter-spacing:.08em}
-  .theme-btn{padding:6px 11px;font-size:11px;gap:5px}
+  .kicker{padding:6px 12px;font-size:15px;letter-spacing:.08em}
+  .tools{gap:6px}
+  .theme-btn{padding:6px 10px;font-size:11px;gap:5px}
   main{padding:0 14px 26px}
   .block{margin:22px 0 34px}
   .ribbon{height:24px}
@@ -833,7 +844,7 @@ mark{
   .switch-btn{padding:6px 14px;font-size:12px}
 }
 
-/* 极窄屏（≤340）：主题按钮只留图标，标题不换行 */
+/* 极窄屏（≤340）：两个按钮只留图标，标题不换行 */
 @media (max-width:340px){
   .theme-btn span{display:none}
   .theme-btn{padding:7px 9px}
