@@ -121,11 +121,36 @@
     const known = knownIds();
     const doneAt = doneStampMap(s.doneAt);
     const picked = Array.isArray(s.done) ? [...new Set(s.done)].filter((id) => known.has(id)) : [];
-    const done = [...unifyLinks(picked, doneAt)];
-    // 不变式：计时起点只属于「这一轮已完成」的任务。done 里没有它的，说明这一轮早就重置过，
+    let done = [...unifyLinks(picked, doneAt)];
+    // 不变式一：计时起点只属于「这一轮已完成」的任务。done 里没有它的，说明这一轮早就重置过，
     // 存档里残留的起点必须丢掉 —— 否则会立刻满足「已满 N 小时」，tick 每秒再判一次，反复重置。
-    const doneSet = new Set(done);
+    // 不变式二：重置点之前勾的、按周期早该清掉的记录，不许和 lastReset 共存。
+    // lastReset 已经记到更晚的重置点，说明那次结算已经在某台设备上发生过；这条勾选是被
+    // 历史版本漏清的残留（旧版重置不盖章、合并同分时误保留等）。不丢的话 settle 看到
+    // lastReset >= boundary 会直接跳过，这条勾永远清不掉 —— 任务 25「每日 05:00 未重置」
+    // 卡死就是这条：doneAt 停在上个周期，lastReset.daily 已是今天。有盖章才判龄
+    // （doneAt 为 0 的旧存档无从判断，保守保留）；计时中（clock/earn）与主任务完成期间
+    // 的从属有结算豁免，照 settleResets 的规则放行。
+    const lastReset = stampMap(s.lastReset);
     const startedRaw = numMap(s.started);
+    done = done.filter((id) => {
+      const stamp = doneAt[id] || 0;
+      if (!stamp) return true;
+      const task = DATA.tasks.find((x) => x.id === id);
+      if (!task) return false;
+      const c = DATA.categories.find((x) => x.key === task.cat);
+      if (!c || !c.reset) return true; // 「所有」是汇总视图，没有周期
+      const boundary = lastReset[c.reset === "custom" ? "s" + id : c.key];
+      // 没记过基线 / 重置点之后勾的 → 正常。
+      // 结算点落在未来（时钟回拨过）无从判断新旧，一律保留，别把刚做的进度当陈旧清掉
+      if (boundary == null || boundary > Date.now() || stamp >= boundary) return true;
+      const m = mechOf(task);
+      if ((m.clock || m.earn) && startedRaw[id] != null) return true; // 走自己的计时，不受周期影响
+      const owner = LINK_OWNER.get(id);
+      if (owner != null && done.includes(owner)) return true; // 主任务完成期间，从属跟着主任务走
+      return false; // 该清未清的残留
+    });
+    const doneSet = new Set(done);
     const started = {};
     Object.keys(startedRaw).forEach((k) => {
       if (doneSet.has(Number(k))) started[k] = startedRaw[k];
@@ -168,7 +193,7 @@
   }
 
   // 勾选状态按「最后一次改动时间」逐条判定：取消勾选、周期重置也能同步过去，
-  // 不会被云端那份旧存档按并集又勾回来。时间戳缺失（旧存档）按 0 处理，相等时保留已完成。
+  // 不会被云端那份旧存档按并集又勾回来。时间戳缺失（旧存档）按 0 处理。
   function mergeDone(b, l) {
     const bSet = new Set(b.done);
     const lSet = new Set(l.done);
@@ -184,6 +209,10 @@
         const bt = b.doneAt[id] || 0;
         const lt = l.doneAt[id] || 0;
         if (lt !== bt) keep = lt > bt ? lHas : bHas;
+        // 时间戳相同却只有一边算完成：以「未完成」为准。同分无法证明谁更晚，
+        // 而正常流程里每次勾选/取消/重置都会盖上新的章，同分只能来自
+        // 旧版代码（重置不盖章）留下的残留 —— 保留它会让被清掉的记录永远救得回来。
+        else keep = false;
       }
       if (keep) done.push(id);
     });
@@ -246,11 +275,25 @@
   }
 
   function load() {
+    let changed = false;
+    let labels = [];
     try {
-      const raw = localStorage.getItem(storeKey());
-      lastRaw = raw || "";
+      const raw = localStorage.getItem(storeKey()) || "";
+      lastRaw = raw;
       applyData(raw ? JSON.parse(raw) : null);
+      // 读档后立刻结算一次，并把「被规范化过的结果」写回存档。
+      // 不回写的话，存档里的残留（该清未清的勾、脏的计时起点）会一直留着，
+      // 下次推云又把云端写回中毒状态 —— 任务 25 卡死治不好的最后一环就在这。
+      const r = settleResets(Date.now());
+      labels = r.labels || [];
+      const fixed = JSON.stringify(snapshot());
+      if (raw && fixed !== raw) {
+        writeStore(fixed);
+        dirty = true;
+        changed = true;
+      }
     } catch (e) { /* 忽略损坏的存档 */ }
+    return { changed: changed, labels: labels };
   }
 
   function writeStore(raw) {
@@ -1150,12 +1193,12 @@
 
     const settle = (key, boundary, ids, label) => {
       const prev = state.lastReset[key];
-      if (prev == null) {
-        state.lastReset[key] = boundary;
-        touched = true;
-        return;
-      }
-      if (prev >= boundary) return;
+      const first = prev == null;
+      // 首次记录基线也照常结算：只清「有盖章且早于重置点」的勾（能证明是上个周期的遗留）。
+      // 无盖章的旧存档按「周期未知」保守保留，避免老存档升级时一次性被清空。
+      // 原先「首次只记录不清空」会造出 lastReset 已前进、旧勾还挂着的组合，
+      // 之后 settle 看到 prev >= boundary 永远跳过 —— 又是任务 25 卡死那类病灶。
+      if (!first && prev >= boundary) return;
       state.lastReset[key] = boundary;
       touched = true;
       const before = state.done.length;
@@ -1163,6 +1206,8 @@
       const clear = new Set();
       ids.forEach((id) => {
         if (!stale(id, boundary)) return;
+        // 首次基线：没有盖章的勾视作「周期未知」，保守保留（stale 按 0 < boundary 会命中它们）
+        if (first && !state.doneAt[id]) return;
         // 关联从属：主任务这一轮已经完成，就跟着主任务的周期走，不被自己分类的重置点清掉；
         // 主任务还没完成时照常按自己分类清（每日任务每天重做、每周任务每周重做）
         const owner = LINK_OWNER.get(id);
@@ -1489,10 +1534,9 @@
   /* ---------------- 启动 ---------------- */
   function init() {
     state.user = readSession();
-    load();
-    // 进页面先结算一次周期：跨过 05:00 / 周一 / 月初就把上一周期的完成状态清掉
-    const bootSettle = settleResets(Date.now());
-    if (bootSettle.touched) save();
+    // load 里已经按周期结算过一次；跨过 05:00 / 周一 / 月初时顺手把结果写回并待同步
+    const boot = load();
+    if (boot.changed) save();
     syncThemeChrome(currentTheme());
     bind();
     renderNav();
@@ -1504,7 +1548,7 @@
     renderClockLabels();
     setSyncLabel(!syncFailed);
     checkAutoReset(Date.now());
-    if (bootSettle.labels.length) toast(`${bootSettle.labels.join("、")}任务已重置`);
+    if (boot.labels.length) toast(`${boot.labels.join("、")}任务已重置`);
     setInterval(tick, 1000);
     setInterval(renderClockLabels, 30000);
     // 兜底：还有没推上去的改动就每 45 秒补一次；切到后台时立刻冲刷
