@@ -24,7 +24,7 @@
 
   const state = {
     done: [], cat: "daily", selected: null, name: "",
-    started: {}, counts: {}, perHour: {}, lastReset: {}, doneAt: {}, user: null,
+    started: {}, counts: {}, perHour: {}, perHourAt: {}, lastReset: {}, doneAt: {}, user: null,
     view: "tasks" // tasks = 任务列表，calendar = 工具里的版本日历（不写进存档）
   };
 
@@ -162,6 +162,8 @@
       started: started,
       counts: numMap(s.counts),
       perHour: numMap(s.perHour),
+      // 每小时收益的写入时间（含清空）：多端合并按它判断哪边更新，老存档没有就按 0
+      perHourAt: numMap(s.perHourAt),
       lastReset: stampMap(s.lastReset),
       doneAt: doneAt
     };
@@ -175,6 +177,7 @@
     state.started = d.started;
     state.counts = d.counts;
     state.perHour = d.perHour;
+    state.perHourAt = d.perHourAt;
     state.lastReset = d.lastReset;
     state.doneAt = d.doneAt;
   }
@@ -187,6 +190,7 @@
       started: Object.assign({}, state.started),
       counts: Object.assign({}, state.counts),
       perHour: Object.assign({}, state.perHour),
+      perHourAt: Object.assign({}, state.perHourAt),
       lastReset: Object.assign({}, state.lastReset),
       doneAt: Object.assign({}, state.doneAt)
     };
@@ -219,6 +223,34 @@
     // 保持列表顺序稳定：按 data.js 里的任务顺序排
     const order = new Map(DATA.tasks.map((t, i) => [t.id, i]));
     return done.sort((x, y) => (order.get(x) ?? 0) - (order.get(y) ?? 0));
+  }
+
+  // 每小时收益是用户手填的数字，没有「越大越新」的道理，只能按写入时间判定新旧。
+  // 原来两边直接 Object.assign(b, l) 让本页无条件赢：没刷新的标签页 / 另一台设备一保存，
+  // 就把刚改好的收益数覆盖回旧值（任务 42 即刻落槌「同步时旧数据盖掉新数据」）。
+  // 清空也算一次改动，所以要带章（墓碑），不然删掉的旧值会被另一边救回来。
+  // 两边都没有章＝老存档，沿用旧行为：有值的一边留着，两边都有本页赢。
+  function mergePerHour(b, l) {
+    const out = { perHour: {}, perHourAt: {} };
+    const keys = new Set(
+      Object.keys(b.perHour || {}).concat(Object.keys(l.perHour || {}))
+        .concat(Object.keys(b.perHourAt || {})).concat(Object.keys(l.perHourAt || {}))
+    );
+    keys.forEach((k) => {
+      const bt = (b.perHourAt || {})[k] || 0;
+      const lt = (l.perHourAt || {})[k] || 0;
+      if (!bt && !lt) {
+        const v = (l.perHour || {})[k] != null ? l.perHour[k] : (b.perHour || {})[k];
+        if (v != null) out.perHour[k] = v;
+        return;
+      }
+      const takeLocal = lt >= bt;
+      const src = takeLocal ? l : b;
+      const v = (src.perHour || {})[k];
+      if (v != null) out.perHour[k] = v; // 拿的一方没有值＝那次是被清空的，别恢复
+      out.perHourAt[k] = takeLocal ? lt : bt;
+    });
+    return out;
   }
 
   // 登录 / 进页面 / 别的标签页写入时的合并：base 与 local 对称处理
@@ -254,13 +286,15 @@
       const sl = l.started[id];
       started[k] = Math.max(sb == null ? 0 : sb, sl == null ? 0 : sl);
     });
+    const ph = mergePerHour(b, l);
     return normalize({
       done: done,
       name: l.name || b.name,
       cat: l.cat || b.cat,
       started: started,
       counts: counts,
-      perHour: Object.assign({}, b.perHour, l.perHour),
+      perHour: ph.perHour,
+      perHourAt: ph.perHourAt,
       lastReset: lastReset,
       doneAt: doneAt
     });
@@ -309,6 +343,11 @@
     const b = (incoming && incoming.doneAt) || {};
     const keys = new Set(Object.keys(a).concat(Object.keys(b)));
     for (const k of keys) if ((a[k] || 0) > (b[k] || 0)) return true;
+    // 每小时收益同理：本页的写入更新就得把合并结果写回盘，别停在旧值上
+    const pa = snap.perHourAt || {};
+    const pb = (incoming && incoming.perHourAt) || {};
+    const pkeys = new Set(Object.keys(pa).concat(Object.keys(pb)));
+    for (const k of pkeys) if ((pa[k] || 0) > (pb[k] || 0)) return true;
     return false;
   }
 
@@ -1263,6 +1302,8 @@
     const v = Math.max(0, Math.floor(Number(input.value) || 0));
     if (v > 0) state.perHour[task.id] = v;
     else delete state.perHour[task.id];
+    // 记下改动时刻：没有这个章，别的设备一保存就会把这次改动当「旧值」覆盖回去
+    state.perHourAt[task.id] = Date.now();
     save();
     renderDetail();
     toast(v > 0 ? `每小时收益已保存：${fmtNum(v)}` : "已清空每小时收益");
