@@ -116,7 +116,8 @@ window.NTE_I18N = {
       "薄荷": "Mint",
       "达芙蒂尔": "Daffodill",
       "阿德勒": "Adler",
-      "黑羽": "Blackbird"
+      "黑羽": "Blackbird",
+      "曳尔沐": "Elyms"
   },
 
   // 赠礼：中文名 -> 英文名（图标文件名仍用中文，故只换显示文本）
@@ -174,7 +175,8 @@ window.NTE_I18N = {
       "金环青影": "Golden Dawn",
       "魔法膨胀全麦面包": "Magi-Puff Whole Wheat Bread",
       "鲍勃茶园": "Bob's Tea Garden",
-      "黄釉雅器": "Yellow Glaze Vase"
+      "黄釉雅器": "Yellow Glaze Vase",
+      "明亮~wink大作战！": "Blink! Wink Battle!"
   },
 
   // 地点串：整串预先翻译，避免运行时拼错

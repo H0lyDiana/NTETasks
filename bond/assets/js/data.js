@@ -95,6 +95,14 @@ window.NTE_DATA = {
     { name: "灵可",
       fast:  { items: ["金月"], fav: 400, fons: 15000, where: "布朗电器店（绘空町）" },
       cheap: { items: ["元气儿童套餐"], fav: 100, fons: 450, where: "食为天家庭餐厅（桥间地/绘空町/米格尔区/新赫兰德区）" },
-      gift:  { items: ["幻想曲"], fav: 200, fons: 3000, where: "集山忘野花店（桥间地/绘空町/米格尔区/新赫兰德区）" } }
+      gift:  { items: ["幻想曲"], fav: 200, fons: 3000, where: "集山忘野花店（桥间地/绘空町/米格尔区/新赫兰德区）" } },
+    { name: "曳尔沐",
+      fast:  { items: ["幽梦"], fav: 400, fons: 10000, where: "Oops!Chest礼品店（绘空町）" },
+      cheap: { items: ["明亮~wink大作战！"], fav: 100, fons: 600, where: "竹本清源药妆店（桥间地/绘空町/米格尔区/新赫兰德区）" },
+      gift:  { items: ["泠泠琉光"], fav: 200, fons: 5400, where: "集山忘野花店（桥间地/米格尔区）" } },
+    { name: "Exe",
+      fast:  { items: ["占位"], fav: 400, fons: 10000, where: " " },
+      cheap: { items: ["占位"], fav: 200, fons: 5000, where: " " },
+      gift:  { items: ["占位"], fav: 100, fons: 500, where: " " } }
   ]
 };

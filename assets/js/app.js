@@ -835,7 +835,8 @@
     { v: "[1.1]游梦洄廊", src: "assets/img/1.1.webp", ratio: 1.2 },
     { v: "[1.2]九百九十九夜", src: "assets/img/1.2.webp", ratio: 1.4974 },
     { v: "[1.3]雾中朔望星回", src: "assets/img/1.3.webp", ratio: 1.8484 },
-    { v: "[1.4]祷歌为谁而诵", src: "assets/img/1.4.webp", ratio: 1.7328 }
+    { v: "[1.4]祷歌为谁而诵", src: "assets/img/1.4.webp", ratio: 1.7328 },
+    { v: "[1.5]致电，空想迷数", src: "assets/img/1.5.webp", ratio: 1.8517 }
   ];
 
   // 只在第一次进工具页时铺一次 DOM，之后展开状态由浏览器自己保留
@@ -852,7 +853,7 @@
                style="aspect-ratio:1/${it.ratio}" />
         </a>
       </details>`).join("");
-    // 展开时才真正请求原图（4 张合计约 16MB，不能一进页面就拉）
+    // 展开时才真正请求原图（5 张合计约 3.7MB，不能一进页面就拉）
     el.calList.querySelectorAll("details.cal-item").forEach((box) => {
       box.addEventListener("toggle", () => {
         if (!box.open) return;
@@ -1309,35 +1310,6 @@
     toast(v > 0 ? `每小时收益已保存：${fmtNum(v)}` : "已清空每小时收益");
   }
 
-  function setCategoryDone(done) {
-    const ids = catTasks(state.cat).map((t) => t.id);
-    // 「全部完成」不碰次要任务（它们不计入进度，也不替用户启动计时）；「清空本页」全清
-    const target = done ? catTasks(state.cat).filter((t) => !t.minor).map((t) => t.id) : ids;
-    // 联动单向：本页出现主任务时带上它的从属（可能跨分类）；本页只是从属就只处理它自己
-    const scope = new Set();
-    target.forEach((id) => {
-      scope.add(id);
-      if (LINK_OWNER.has(id)) return;
-      (LINK_CHILDREN.get(id) || []).forEach((x) => scope.add(x));
-    });
-    const now = Date.now();
-    if (done) {
-      scope.forEach((id) => {
-        if (!state.done.includes(id)) state.done.push(id);
-        state.doneAt[id] = now;
-      });
-    } else {
-      scope.forEach((id) => { state.doneAt[id] = now; });
-      state.done = state.done.filter((id) => !scope.has(id));
-    }
-    save();
-    renderNav();
-    renderList();
-    renderDetail();
-    renderProfile();
-    toast(done ? "本页已全部标记完成" : "已清空本页进度");
-  }
-
   function step(dir) {
     if (state.view !== "tasks") return; // 工具页没有上下切换的任务
     const tasks = catTasks(state.cat);
@@ -1544,9 +1516,6 @@
         savePerHour();
       }
     });
-
-    $("#complete-all").addEventListener("click", () => setCategoryDone(true));
-    $("#clear-cat").addEventListener("click", () => setCategoryDone(false));
 
     $("#profile-open").addEventListener("click", openProfile);
     $("#login-btn").addEventListener("click", doLogin);

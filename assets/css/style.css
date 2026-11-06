@@ -203,12 +203,6 @@ a { color: inherit; text-decoration: none; }
 .nav-count { font-size: 14.1px; color: var(--dim); font-family: var(--mono); letter-spacing: .02em; }
 .nav-divider { height: 1px; background: var(--line); margin: 6.2px 7.5px; }
 
-.linkish {
-  background: none; border: 0; padding: 0; text-align: left;
-  font-size: 14.9px; color: var(--dim); cursor: pointer;
-}
-.linkish:hover { color: var(--accent-ink); }
-
 /* ---------------- 主区 ---------------- */
 .main { padding: 13.8px clamp(17.5px, 2vw, 30px) 27.5px; min-width: 0; }
 .btn {
@@ -293,12 +287,9 @@ html[data-theme="light"] .theme-btn .i-moon { display: none; }
 .ring-fg { stroke: var(--accent-ink); stroke-linecap: round; stroke-dasharray: 119.4; stroke-dashoffset: 119.4; transition: stroke-dashoffset .5s cubic-bezier(.4, 0, .2, 1); filter: drop-shadow(0 0 6.2px rgba(var(--accent-rgb), .45)); }
 .ring span { font-size: 12.9px; font-family: var(--mono); color: var(--accent-ink); line-height: 1; }
 
-.list-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 17.5px 10px; border-bottom: 1px solid var(--line); }
+.list-bar { display: flex; align-items: center; gap: 12px; padding: 0 17.5px 10px; border-bottom: 1px solid var(--line); }
 #list-hint { font-size: 14.1px; color: var(--dim); min-width: 0; }
 #list-hint .nb { white-space: nowrap; }
-.list-tools { display: flex; gap: 17.5px; flex: none; }
-.list-tools .linkish { font-size: 14.9px; color: var(--muted); white-space: nowrap; }
-.list-tools .linkish:hover { color: var(--accent-ink); }
 
 .task-list { display: flex; flex-direction: column; gap: 5px; padding: 8.8px 11.2px 3.8px; }
 .task-row {
@@ -533,10 +524,6 @@ dialog::backdrop { background: var(--backdrop); backdrop-filter: blur(3.8px); }
   .rc-time { font-size: 21.2px; margin-top: 8.8px; }
   .rc-sub { font-size: 12.8px; }
   .task-list { padding: 8.8px 8.8px 3.8px; }
-  /* 窄屏放不下「提示 + 两个按钮」，提示整段换到第二行 */
-  .list-bar { flex-wrap: wrap; row-gap: 5px; }
-  #list-hint { flex: 1 1 100%; order: 2; }
-  .list-tools { order: 1; margin-left: auto; }
   .cal-list { padding: 0 11.2px 13.8px; }
   .cal-head { padding: 12.5px 13.8px; font-size: 17.5px; }
   .cal-shot { margin: 0 9.4px 9.4px; }

@@ -6,7 +6,7 @@ window.NTE_DATA = {
     { key: "daily",    label: "每日",       icon: "daily",    reset: "daily" },
     { key: "weekly",   label: "每周",       icon: "weekly",   reset: "weekly" },
     { key: "special",  label: "特殊",       icon: "star",     reset: "custom",
-      version: "[1.4]祷歌为谁而诵 下", cardTask: 50 },
+      version: "[1.5]致电，空想迷数 上", cardTask: 50 },
     { key: "monthly",  label: "每月",       icon: "monthly",  reset: "monthly" },
     { key: "all",      label: "所有",       icon: "grid" }
   ],
@@ -57,6 +57,8 @@ window.NTE_DATA = {
       steps: ["灵可羁遇等级4级解锁居家时刻拼贴画", "房产→灵可→互动→拼贴画", "获得宇宙级艺术创想", "每日限制三次", "作为礼物赠送角色增加50好感度", "作为礼物赠送灵可增加100好感度"] },
     { id: 56, cat: "daily", title: "做便当", minor: true,
       steps: ["卡厄斯羁遇等级6级解锁居家时刻做便当", "房产→卡厄斯→互动→做便当", "获得焰火海鲜饭", "每日最多获得三次"] },
+    { id: 57, cat: "daily", title: "在吗在吗",
+      steps: ["曳尔沐角色特性→在吗在吗", "角色→曳尔沐→等待", "获得随机好感道具", "每日限制一次"] },
 
     /* ---------------- 每周 ---------------- */
     { id: 27, cat: "weekly", title: "每周环期任务",
@@ -83,8 +85,8 @@ window.NTE_DATA = {
       steps: ["埃德嘉羁遇等级10级解锁", "使用读后感", "获得随机猎人攻略"] },
 
     /* ---------------- 特殊（自定义：开始时间 + 重置间隔，按周期往后数） ---------------- */
-    { id: 50, cat: "special", title: "祷歌为谁而诵", startAt: "2026-09-24T05:00:00+08:00", every: 21,
-      steps: ["异环1.4下半"] },
+    { id: 50, cat: "special", title: "致电，空想迷数", startAt: "2026-09-24T05:00:00+08:00", every: 21,
+      steps: ["异环1.5上半"] },
     { id: 37, cat: "special", title: "大亨计划激励金", startAt: "2026-10-05T05:00:00+08:00", every: 14,
       steps: ["都市大亨→都市闲趣→即刻落槌→展览柜收益", "都市大亨→都市闲趣→排球之星→周常联赛", "都市大亨→都市闲趣→粉爪大劫案"] },
     { id: 38, cat: "special", title: "轨外之境", startAt: "2026-10-16T05:00:00+08:00", every: 14,
