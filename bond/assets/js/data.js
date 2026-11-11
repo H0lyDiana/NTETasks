@@ -99,7 +99,7 @@ window.NTE_DATA = {
     { name: "曳尔沐",
       fast:  { items: ["幽梦"], fav: 400, fons: 10000, where: "Oops!Chest礼品店（绘空町）" },
       cheap: { items: ["明亮~wink大作战！"], fav: 100, fons: 600, where: "竹本清源药妆店（桥间地/绘空町/米格尔区/新赫兰德区）" },
-      gift:  { items: ["泠泠琉光"], fav: 200, fons: 5400, where: "集山忘野花店（桥间地/米格尔区）" } },
+      gift:  { items: ["烦恼纸飞机", "小幽灵徽章", "好朋友贴纸"], fav: 200, fons: 0, where: "曳尔沐角色特性：在吗在吗" } },
     { name: "Exe",
       fast:  { items: ["占位"], fav: 400, fons: 10000, where: " " },
       cheap: { items: ["占位"], fav: 200, fons: 5000, where: " " },
